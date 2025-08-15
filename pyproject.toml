@@ -1,0 +1,16 @@
+[project]
+name = "mocness-field-sheets"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "dotenv>=0.9.9",
+    "fs>=2.4.16",
+    "openai>=1.97.1",
+    "opencv-python>=4.12.0.88",
+    "path>=17.1.1",
+    "pytesseract>=0.3.13",
+    "python-dotenv>=1.1.1",
+    "uv>=0.8.3",
+]

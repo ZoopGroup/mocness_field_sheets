@@ -1,0 +1,20 @@
+You are analyzing one or more scanned images from oceanographic field datasheets related to MOCNESS (Multiple Opening/Closing Net and Environmental Sensing System) tows.
+
+Each tow may have either:
+- A single image with all structured metadata and net table
+- Or two images: a form page and a second notes page containing handwritten biological or procedural comments
+
+The association between these pages is identified by the file name:
+
+### FILE NAMING CONVENTION:
+- tow_<ID>_form.png → the primary structured form page
+- tow_<ID>_notes.png → the corresponding handwritten notes page for the same tow
+
+Extract the following as a single JSON object:
+- Header metadata (cruise, date, wind, location, lat/long, etc.)
+- Net rows with: net number, time, depth, angle, flow, volume, and comments
+- Merge any handwritten comments from notes page by matching net number
+- Combine duplicate comments with `;` separator
+- Format all dates as yyyy-mm-dd
+- Ignore rows with neither time nor depth
+- Interpret slashed-zero symbols as the number 0
