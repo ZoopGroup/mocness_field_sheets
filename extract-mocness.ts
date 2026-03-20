@@ -4,14 +4,15 @@ import path from "path"
 
 const inputDir = env("INPUT_DIR") || "input"
 const outputDir = env("OUTPUT_DIR") || "output"
+const model = env("MODEL") || "gpt-5.3"
 const prompt = await fs.readFile("prompts/extract.json", "utf-8")
 
 // Read all filenames in the input directory
 const files = await fs.readdir(inputDir)
 const towIds = new Set(
   files
-    .filter(f => f.endsWith("_form.png"))
-    .map(f => f.match(/tow_(\\d+)_form\\.png/)?.[1])
+    .filter(f => /_form\.png$/i.test(f))
+    .map(f => f.match(/tow_(\d+)_form\.png/i)?.[1])
     .filter(Boolean)
 )
 
@@ -28,7 +29,7 @@ for (const towId of towIds) {
   if (notesImage) visionInputs.push(notesImage)
 
   const result = await chat({
-    model: "gpt-4o",
+    model,
     temperature: 0,
     messages: [
       { role: "system", content: "You are a document parser for MOCNESS oceanographic tows." },

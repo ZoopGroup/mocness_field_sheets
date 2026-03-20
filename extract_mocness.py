@@ -25,6 +25,12 @@ load_dotenv()
 def _is_s3(path: str) -> bool:
     return isinstance(path, str) and path.startswith("s3://")
 
+def _normalize_path(path: str) -> str:
+    """Expand ~ and environment variables for local paths only."""
+    if _is_s3(path):
+        return path
+    return os.path.expandvars(os.path.expanduser(path))
+
 def _require_s3fs():
     if _fs is None:
         raise RuntimeError("s3fs is required to use s3:// paths. Install with: pip install s3fs boto3")
@@ -99,7 +105,8 @@ ALLOWED_EXTS = ("png", "jpg", "jpeg")  # case-insensitive
 async def run_extractor(
     input_dir: str,
     output_dir: str,
-    model: str = "gpt-4o",
+    model: str = "gpt-5.3",
+    api_key: str | None = None,
     prompt_path: str = "prompts/extract.json",
     delay_after_call: float = 1.0,
 ):
@@ -107,9 +114,12 @@ async def run_extractor(
     Read tow_*_form.(png|jpg|jpeg) + optional *_notes.* from input_dir (local or S3; non-recursive),
     call the model, and write tow_###.json (or .txt) to output_dir.
     """
-    openai_api_key = os.getenv("OPENAI_API_KEY")
+    openai_api_key = api_key or os.getenv("OPENAI_API_KEY")
     if not openai_api_key:
         raise ValueError("OPENAI_API_KEY environment variable is required")
+
+    input_dir = _normalize_path(input_dir)
+    output_dir = _normalize_path(output_dir)
 
     client = OpenAI(api_key=openai_api_key)
 
@@ -202,7 +212,7 @@ async def run_extractor(
 async def _main_from_env():
     input_dir = os.getenv("INPUT_DIR", "input")
     output_dir = os.getenv("OUTPUT_DIR", "output")
-    model = os.getenv("MODEL", "gpt-4o")
+    model = os.getenv("MODEL", "gpt-5.3")
     await run_extractor(input_dir=input_dir, output_dir=output_dir, model=model)
 
 if __name__ == "__main__":

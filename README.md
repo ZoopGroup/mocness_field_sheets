@@ -1,184 +1,171 @@
-## MOCNESS Field Sheet Extractor
+# MOCNESS Field Sheet Extractor
 
-This repository contains Python code to **extract structured JSON data** from
-scanned MOCNESS datasheet images (field sheets) using an LLM with vision
-support (e.g. OpenAI `gpt-4o`).  
+Extract structured tow metadata from scanned MOCNESS field sheets.
 
-The extractor:
-- Reads raw scan images (`tow_<id>_form.png` + optional `tow_<id>_notes.png`) from **local folders** or **S3 buckets**.  
-- Calls the OpenAI Chat Completions API with a configurable prompt.  
-- Produces structured `.json` (or `.txt` fallback if parsing fails) files, one per tow.  
-- Can be run standalone or imported as a library.  
-- Supports multiple image formats: `.png`, `.jpg`, `.jpeg` (case-insensitive).  
-- Is designed as the first stage of a larger workflow to harvest oceanographic cruise data into a structured data lake.  
+This project reads tow form images, sends them to an OpenAI vision model, and writes one output file per tow:
+- valid JSON -> `tow_<id>.json`
+- non-JSON fallback -> `tow_<id>.txt`
 
----
+## What Inputs Are Expected
 
-## Repository Layout
+Yes, your understanding is correct.
 
-.
-├── extract_mocness.py # Core extractor logic (S3 + local aware)
-├── main.py # Simple entrypoint (runs extractor from env vars)
-├── prompts/
-│ └── extract.json # Prompt instructions for the model
-├── .env.example # Example environment variables
-└── README.md # This document
+For this dataset, the tool can run with only per-tow form images:
+- required: `tow_<id>_form.png` (or `.jpg` / `.jpeg`)
+- optional: `tow_<id>_notes.png` (or `.jpg` / `.jpeg`)
 
+If there are no separate notes pages, that is fine. The extractor will process only the form image for each tow.
 
----
+Important behavior:
+- input scan is non-recursive (files must be directly inside `INPUT_DIR`)
+- file names are matched case-insensitively
 
-## Requirements
+## Quick Primer (Start Here)
 
-- Python 3.10+ (tested with 3.12)  
-- [`uv`](https://github.com/astral-sh/uv) for virtual environment + dependency
-management.  
+1. Set up Python environment and dependencies.
+2. Convert your single PDF into one PNG per tow page.
+3. Rename each page to `tow_<id>_form.png`.
+4. Configure `.env`.
+5. Run extractor.
+6. Review output JSON/TXT files.
 
----
+## Setup
 
-## Setup with uv
+Requirements:
+- Python 3.12+
+- `uv`
 
-Create and activate a project-local virtual environment:
+Create env and install packages:
 
 ```bash
-# Create a venv managed by uv
 uv venv
-
-# Activate it
-source .venv/bin/activate   # (Linux/macOS)
-# .venv\Scripts\activate    # (Windows PowerShell)
+source .venv/bin/activate
+uv sync
 ```
 
-Install dependencies into this venv:
+If you prefer explicit install:
 
 ```bash
 uv pip install openai python-dotenv s3fs boto3
 ```
 
-## Configuration
+## Configure Environment
 
-The extractor is controlled via environment variables. The easiest way is to put them in a .env file in the repo root (auto-loaded at runtime).
-Required
-
-    OPENAI_API_KEY – your OpenAI API key
-
-    INPUT_DIR – local path or S3 prefix containing field sheet scans
-
-    OUTPUT_DIR – local path or S3 prefix to write extracted JSON results
-
-Optional
-
-    MODEL – model name (default: gpt-4o)
-
-    AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION – only needed if you use s3://… paths.
-
-Example .env
+Copy template and edit values:
 
 ```bash
-
-# OpenAI
-OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxx
-
-# Input / Output
-INPUT_DIR=s3://gios-data/datasets/testing/maas_input/
-OUTPUT_DIR=s3://gios-data/datasets/testing/maas_output/
-
-# Optional model override
-MODEL=gpt-4o
-
-# AWS creds (omit if using local paths and AWS profile/role handles this)
-AWS_ACCESS_KEY_ID=AKIA...
-AWS_SECRET_ACCESS_KEY=xxxxxxxx
-AWS_DEFAULT_REGION=us-west-2
+cp .env.example .env
 ```
 
-File Naming Conventions
+Minimum `.env` values:
 
-The extractor looks for files like:
-
-    tow_<number>_form.png (required)
-
-    tow_<number>_notes.png (optional)
-
-Case-insensitive and supports .png, .jpg, .jpeg.
-
-Examples:
-
-```
-tow_0_form.png
-tow_0_notes.png
-tow_1_form.JPG
+```bash
+OPENAI_API_KEY=sk-...
+INPUT_DIR=input
+OUTPUT_DIR=output
+MODEL=gpt-5.3
 ```
 
-Notes can use a different extension than the form.
-Running the Extractor
+## Run Extraction
 
-Activate your venv if not already:
+Python entrypoint:
 
-`source .venv/bin/activate`
-
-Then run:
-Local → Local
-
-`python main.py`
-
-S3 → S3
-
-`python main.py`
-
-(as long as .env contains the S3 INPUT_DIR and OUTPUT_DIR and AWS credentials)
-Local → S3
-
-INPUT_DIR=/path/to/scans OUTPUT_DIR=s3://bucket/output/ python main.py
-
-S3 → Local
-
-INPUT_DIR=s3://bucket/input/ OUTPUT_DIR=/tmp/output python main.py
-
-## How It Works
-
-    Discovery
-    Scans INPUT_DIR (non-recursive) for files named tow_<id>_form.(png|jpg|jpeg).
-
-    Prompting
-    Loads prompts/extract.json and passes it along with the form (and optional notes) images as multimodal input to the LLM.
-
-    Extraction
-    Receives the model’s output.
-
-        If valid JSON → writes as tow_<id>.json.
-
-        If invalid JSON → writes raw response as tow_<id>.txt.
-
-    Outputs
-    Stored under OUTPUT_DIR (local path or S3 prefix).
-
-## Library Usage
-
-You can import and call the extractor from Python:
-
-```py
-import asyncio
-from extract_mocness import run_extractor
-
-asyncio.run(run_extractor(
-    input_dir="s3://mybucket/cruise123/field_sheets",
-    output_dir="s3://mybucket/cruise123/json",
-    model="gpt-4o"
-))
+```bash
+source .venv/bin/activate
+python main.py
 ```
+
+Run-time overrides (without editing `.env`):
+
+```bash
+python main.py --model gpt-5.3 --api-key "$OPENAI_API_KEY"
+python main.py --input-dir /path/to/input --output-dir /path/to/output
+```
+
+Optional TypeScript entrypoint:
+
+```bash
+uv run extract-mocness.ts
+```
+
+Both runners support model override via `MODEL` (default `gpt-5.3`).
+
+## Convert Single PDF -> Individual PNGs
+
+Assume your source file is named `field_sheets.pdf` and each page is one tow form.
+
+### Option A: `pdftoppm` (recommended)
+
+Install (Ubuntu/Debian):
+
+```bash
+sudo apt-get update && sudo apt-get install -y poppler-utils
+```
+
+Convert pages to PNG (300 DPI):
+
+```bash
+mkdir -p input
+pdftoppm -png -r 300 field_sheets.pdf input/page
+```
+
+This creates files like `input/page-1.png`, `input/page-2.png`, etc.
+
+Rename into tow format (example: page 1 -> tow_0, page 2 -> tow_1):
+
+```bash
+n=0
+for f in $(ls input/page-*.png | sort -V); do
+  mv "$f" "input/tow_${n}_form.png"
+  n=$((n+1))
+done
+```
+
+### Option B: ImageMagick
+
+Install:
+
+```bash
+sudo apt-get update && sudo apt-get install -y imagemagick
+```
+
+Convert:
+
+```bash
+mkdir -p input
+magick -density 300 field_sheets.pdf input/page-%d.png
+```
+
+Then apply the same rename loop above.
+
+## File Naming Rules
+
+Required form page per tow:
+- `tow_0_form.png`
+- `tow_1_form.png`
+- `tow_2_form.png`
+
+Optional notes page per tow:
+- `tow_0_notes.png`
+- `tow_1_notes.png`
+
+Notes can be omitted entirely.
+
+## Output
+
+Output directory receives one file per tow:
+- `tow_<id>.json` when parse is valid JSON
+- `tow_<id>.txt` when model output is not valid JSON
 
 ## Troubleshooting
 
-- "Found 0 tows to process"
-    + Ensure files are directly under INPUT_DIR (non-recursive).
-    + Ensure names match tow_<id>_form.png pattern.
-    + Use python check_s3_s3fs.py s3://bucket/prefix/ --list 20 to inspect.
+`Found 0 form images`:
+- verify files are directly in `INPUT_DIR`
+- verify names match `tow_<id>_form.(png|jpg|jpeg)`
 
-- AssertionError: s3fs is required
-    + Run `uv pip install s3fs boto3`.
+S3 path errors:
+- install `s3fs` + `boto3`
+- verify AWS credentials/role
 
-- Invalid JSON output
-    + The model sometimes produces non-JSON. The extractor saves it as .txt. Inspect manually and refine the prompt.
-
-- Auth errors with S3
-    + Check that your AWS credentials (env vars or IAM role) are valid.
+Unexpected `.txt` output:
+- model returned non-JSON; inspect file and refine prompt in `prompts/extract.json`
