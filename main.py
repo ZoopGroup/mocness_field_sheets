@@ -9,6 +9,7 @@ def main():
     parser.add_argument("--api-key", help="Override OPENAI_API_KEY for this run")
     parser.add_argument("--input-dir", help="Override INPUT_DIR for this run")
     parser.add_argument("--output-dir", help="Override OUTPUT_DIR for this run")
+    parser.add_argument("--tow-ids", nargs="+", help="Optional tow IDs to process (e.g. 11 or 2 10 14)")
     args = parser.parse_args()
 
     if args.model:
@@ -19,6 +20,8 @@ def main():
         os.environ["INPUT_DIR"] = args.input_dir
     if args.output_dir:
         os.environ["OUTPUT_DIR"] = args.output_dir
+    if args.tow_ids:
+        os.environ["TOW_IDS"] = ",".join(args.tow_ids)
 
     print("Starting MOCNESS field sheet extraction...")
     asyncio.run(extract_main())

@@ -1,20 +1,104 @@
-You are analyzing one or more scanned images from oceanographic field datasheets related to MOCNESS (Multiple Opening/Closing Net and Environmental Sensing System) tows.
+You are extracting structured data from scanned MOCNESS tow datasheets.
 
-Each tow may have either:
-- A single image with all structured metadata and net table
-- Or two images: a form page and a second notes page containing handwritten biological or procedural comments
+INPUTS:
+- One or two images are provided for a tow.
+- Form image name pattern: tow_<ID>_form.png
+- Optional notes image name pattern: tow_<ID>_notes.png
 
-The association between these pages is identified by the file name:
+GENERAL RULES:
+- Return JSON only.
+- If a field is unreadable or absent, return null.
+- Preserve latitude/longitude exactly as written (no decimal conversion).
+- Normalize times to HH:MM (24h) when readable.
+- Keep local and GMT time fields separately.
+- If a row time cell contains two times (stacked or slash-separated) and row-level mapping is ambiguous, set row time fields to null rather than guessing.
+- If the form has separate `GMT Date` and `Local Date` fields, extract both into `gmt_date` and `local_date`.
+  - If both are present and identical, also set `date` to that value and `date_unresolved=false`.
+  - If both are present and differ, set `date` to null, `date_unresolved=true`, and explain the conflict in `date_unresolved_reason`.
+  - If only one is present, set `date` to that value.
+- If the form has only a single `Date` field, set `date` from it and leave `local_date` and `gmt_date` as null.
+- If date cannot be confidently resolved, set date to null and set date_unresolved=true with a reason.
+- Net rows: keep only rows where net_number is explicit; if net_number is missing, exclude that row.
+- Do not infer net_number from row order.
+- Notes merge behavior per net:
+	- notes_table: notes written in the NET TOW table row.
+	- notes_notes_page: notes from notes page matched by net number (usually just numeric net labels).
+	- notes: if both exist, concatenate as "<notes_table>; <notes_notes_page>".
+	- Keep exact text; duplicates are allowed.
+- Interpret slashed-zero symbols as numeric/text zero where applicable.
 
-### FILE NAMING CONVENTION:
-- tow_<ID>_form.png → the primary structured form page
-- tow_<ID>_notes.png → the corresponding handwritten notes page for the same tow
+FORM VARIANTS TO HANDLE:
+- Header fields can include:
+	Cruise, Tow/Moc#, Date, Location, D/N, Direction, Sea State, Wind Speed,
+	Local Time (from/to), GMT Time (from/to), Net Condition, Net Mesh, Net Size,
+	Start Lat, Start Long, End Lat, End Long.
+- Some forms also include File Name, Type (net type), SOG, Operator.
+- Coordinates may appear as Start Lat Long / End Lat Long; split into
+	start_lat/start_long and end_lat/end_long when possible.
+- NET TOW table columns vary; include all observed row values into canonical keys.
+- Do not populate `depth_m` unless a distinct `Depth (m)` column is actually present on that form variant.
+- If the form only has `Depth max (m)` and `Depth min (m)`, set `depth_m` to null for all rows.
 
-Extract the following as a single JSON object:
-- Header metadata (cruise, date, wind, location, lat/long, etc.)
-- Net rows with: net number, time, depth, angle, flow, volume, and comments
-- Merge any handwritten comments from notes page by matching net number
-- Combine duplicate comments with `;` separator
-- Format all dates as yyyy-mm-dd
-- Ignore rows with neither time nor depth
-- Interpret slashed-zero symbols as the number 0
+OUTPUT SCHEMA (exact keys, no extras):
+{
+	"tow_id": "string",
+	"header": {
+		"cruise": "string|null",
+		"tow_moc_number": "string|null",
+		"file_name": "string|null",
+		"date": "yyyy-mm-dd|string|null",
+		"local_date": "yyyy-mm-dd|string|null",
+		"gmt_date": "yyyy-mm-dd|string|null",
+		"date_unresolved": "boolean|null",
+		"date_unresolved_reason": "string|null",
+		"location": "string|null",
+		"day_night": "string|null",
+		"direction": "string|null",
+		"sea_state": "string|null",
+		"wind_speed": "string|null",
+		"local_time_from": "HH:MM|null",
+		"local_time_to": "HH:MM|null",
+		"gmt_time_from": "HH:MM|null",
+		"gmt_time_to": "HH:MM|null",
+		"net_condition": "string|null",
+		"net_mesh": "string|null",
+		"net_size": "string|null",
+		"net_type": "string|null",
+		"sog": "string|null",
+		"operator": "string|null",
+		"start_lat": "string|null",
+		"start_long": "string|null",
+		"end_lat": "string|null",
+		"end_long": "string|null"
+	},
+	"form_comments": "string|null",
+	"net_tows": [
+		{
+			"net_number": "string",
+			"time_open_local": "HH:MM|null",
+			"time_close_local": "HH:MM|null",
+			"time_close_gmt": "HH:MM|null",
+			"target_depth_m": "string|number|null",
+			"depth_max_m": "string|number|null",
+			"depth_min_m": "string|number|null",
+			"depth_m": "string|number|null",
+			"lat": "string|null",
+			"lon": "string|null",
+			"angle": "string|number|null",
+			"flow_counts": "string|number|null",
+			"volume_filtered": "string|number|null",
+			"mwo_net": "string|null",
+			"winch_speed": "string|number|null",
+			"notes_table": "string|null",
+			"notes_notes_page": "string|null",
+			"notes": "string|null"
+		}
+	],
+	"quality": {
+		"field_confidence": {
+			"field.path": "number from 0.0 to 1.0"
+		},
+		"uncertain_fields": ["field.path"],
+		"notes": ["string"]
+	}
+}

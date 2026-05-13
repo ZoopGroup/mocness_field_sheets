@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/mocness_tow.schema.json",
+  "title": "MOCNESS Tow Extraction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "tow_id",
+    "header",
+    "form_comments",
+    "net_tows",
+    "quality"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "2.0"
+    },
+    "tow_id": {
+      "type": "string"
+    },
+    "header": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cruise",
+        "tow_moc_number",
+        "file_name",
+        "date",        "local_date",
+        "gmt_date",        "date_unresolved",
+        "date_unresolved_reason",
+        "location",
+        "day_night",
+        "direction",
+        "sea_state",
+        "wind_speed",
+        "local_time_from",
+        "local_time_to",
+        "gmt_time_from",
+        "gmt_time_to",
+        "net_condition",
+        "net_mesh",
+        "net_size",
+        "net_type",
+        "sog",
+        "operator",
+        "start_lat",
+        "start_long",
+        "end_lat",
+        "end_long"
+      ],
+      "properties": {
+        "cruise": { "type": ["string", "null"] },
+        "tow_moc_number": { "type": ["string", "null"] },
+        "file_name": { "type": ["string", "null"] },
+        "date": { "type": ["string", "null"] },
+        "local_date": { "type": ["string", "null"] },
+        "gmt_date": { "type": ["string", "null"] },
+        "date_unresolved": { "type": ["boolean", "null"] },
+        "date_unresolved_reason": { "type": ["string", "null"] },
+        "location": { "type": ["string", "null"] },
+        "day_night": { "type": ["string", "null"] },
+        "direction": { "type": ["string", "null"] },
+        "sea_state": { "type": ["string", "null"] },
+        "wind_speed": { "type": ["string", "null"] },
+        "local_time_from": {
+          "type": ["string", "null"],
+          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+        },
+        "local_time_to": {
+          "type": ["string", "null"],
+          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+        },
+        "gmt_time_from": {
+          "type": ["string", "null"],
+          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+        },
+        "gmt_time_to": {
+          "type": ["string", "null"],
+          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+        },
+        "net_condition": { "type": ["string", "null"] },
+        "net_mesh": { "type": ["string", "null"] },
+        "net_size": { "type": ["string", "null"] },
+        "net_type": { "type": ["string", "null"] },
+        "sog": { "type": ["string", "null"] },
+        "operator": { "type": ["string", "null"] },
+        "start_lat": { "type": ["string", "null"] },
+        "start_long": { "type": ["string", "null"] },
+        "end_lat": { "type": ["string", "null"] },
+        "end_long": { "type": ["string", "null"] }
+      }
+    },
+    "form_comments": {
+      "type": ["string", "null"]
+    },
+    "net_tows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "net_number",
+          "time_open_local",
+          "time_close_local",
+          "time_close_gmt",
+          "target_depth_m",
+          "depth_max_m",
+          "depth_min_m",
+          "depth_m",
+          "lat",
+          "lon",
+          "angle",
+          "flow_counts",
+          "volume_filtered",
+          "mwo_net",
+          "winch_speed",
+          "notes_table",
+          "notes_notes_page",
+          "notes"
+        ],
+        "properties": {
+          "net_number": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "time_open_local": {
+            "type": ["string", "null"],
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+          },
+          "time_close_local": {
+            "type": ["string", "null"],
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+          },
+          "time_close_gmt": {
+            "type": ["string", "null"],
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+          },
+          "target_depth_m": { "type": ["string", "number", "null"] },
+          "depth_max_m": { "type": ["string", "number", "null"] },
+          "depth_min_m": { "type": ["string", "number", "null"] },
+          "depth_m": { "type": ["string", "number", "null"] },
+          "lat": { "type": ["string", "null"] },
+          "lon": { "type": ["string", "null"] },
+          "angle": { "type": ["string", "number", "null"] },
+          "flow_counts": { "type": ["string", "number", "null"] },
+          "volume_filtered": { "type": ["string", "number", "null"] },
+          "mwo_net": { "type": ["string", "null"] },
+          "winch_speed": { "type": ["string", "number", "null"] },
+          "notes_table": { "type": ["string", "null"] },
+          "notes_notes_page": { "type": ["string", "null"] },
+          "notes": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field_confidence", "uncertain_fields", "notes"],
+      "properties": {
+        "field_confidence": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "uncertain_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -11,3 +11,11 @@ wheels/
 
 # Environment variables
 .env
+
+# Generated extraction outputs and run artifacts
+output/
+reports/
+examples/golden_candidates/
+
+# Local cruise input data (keep out of git)
+hypoxia25/
